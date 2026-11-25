@@ -1,0 +1,17 @@
+# 「흑과 백」 웹 앱 (Proj-01_bw1)
+#   python -m venv .venv && . .venv/bin/activate
+#   pip install -r requirements.txt
+#   pytest tests -q
+
+# 테스트
+pytest>=8.0
+
+# 2단계 서버(딜러) · 웹소켓
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# CLI 클라이언트(cli.py)의 WebSocket 연결 (uvicorn[standard] 에도 포함)
+websockets>=13
+
+# FastAPI TestClient(WebSocket 테스트)가 쓰는 HTTP 클라이언트
+httpx>=0.27

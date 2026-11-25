@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <meta name="description" content="흑과 백 — 색은 보이고 숫자는 숨는 1:1 심리 대전" />
+  <title>흑과 백 — Black &amp; White</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0b0d'/%3E%3Ccircle cx='12' cy='16' r='6' fill='%23111' stroke='%23f5f5f5' stroke-width='2'/%3E%3Ccircle cx='21' cy='16' r='6' fill='%23f5f5f5'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main id="app">
+    <!-- ── 첫 화면 ─────────────────────────────────────────────── -->
+    <section id="screen-home" class="screen is-active" data-screen="home">
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span class="chip chip-black">8</span>
+          <span class="chip chip-white">7</span>
+        </div>
+        <h1>흑과 백</h1>
+        <p class="tagline">색은 보이고, 숫자는 숨는다</p>
+      </header>
+
+      <div class="stack">
+        <button id="btn-create" class="btn btn-primary btn-lg">방 만들기</button>
+        <button id="btn-join" class="btn btn-ghost btn-lg" hidden>초대 링크로 입장</button>
+      </div>
+
+      <p id="home-notice" class="notice" hidden></p>
+
+      <ul class="rules">
+        <li>각자 0~8 타일 9장 <span class="dim">(흑 5장 · 백 4장)</span></li>
+        <li>숫자가 큰 쪽이 승점 1점, 같으면 무승부</li>
+        <li>9라운드 후 동점이면 연장전</li>
+      </ul>
+    </section>
+
+    <!-- ── 대전 모드 선택 ──────────────────────────────────────── -->
+    <section id="screen-mode" class="screen" data-screen="mode">
+      <header class="screen-head">
+        <button class="btn btn-icon" data-nav="home" aria-label="뒤로">←</button>
+        <h2>대전 모드 선택</h2>
+      </header>
+
+      <div class="stack">
+        <button class="mode-card" data-mode="human">
+          <span class="mode-icon" aria-hidden="true">👥</span>
+          <span class="mode-body">
+            <span class="mode-title">사람 대전</span>
+            <span class="mode-desc">초대 링크로 친구와 온라인 1:1</span>
+          </span>
+          <span class="mode-arrow" aria-hidden="true">→</span>
+        </button>
+
+        <button class="mode-card" data-mode="ai">
+          <span class="mode-icon" aria-hidden="true">🤖</span>
+          <span class="mode-body">
+            <span class="mode-title">AI 대전 <span class="badge">NEW</span></span>
+            <span class="mode-desc">난이도를 골라 혼자 바로 시작</span>
+          </span>
+          <span class="mode-arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+
+      <p class="hint">사람 대전은 초대 링크로, AI 대전은 난이도를 고르면 바로 시작됩니다.</p>
+    </section>
+
+    <!-- ── AI 난이도 선택 ──────────────────────────────────────── -->
+    <section id="screen-difficulty" class="screen" data-screen="difficulty">
+      <header class="screen-head">
+        <button class="btn btn-icon" data-nav="mode" aria-label="뒤로">←</button>
+        <h2>난이도 선택</h2>
+      </header>
+
+      <div class="stack">
+        <button class="mode-card" data-difficulty="easy">
+          <span class="mode-icon" aria-hidden="true">🌱</span>
+          <span class="mode-body">
+            <span class="mode-title">쉬움</span>
+            <span class="mode-desc">합법 수 중 무작위로 둡니다 · 규칙 익히기</span>
+          </span>
+          <span class="mode-arrow" aria-hidden="true">→</span>
+        </button>
+
+        <button class="mode-card" data-difficulty="normal">
+          <span class="mode-icon" aria-hidden="true">⚖️</span>
+          <span class="mode-body">
+            <span class="mode-title">보통</span>
+            <span class="mode-desc">공개된 색·점수 차·남은 타일을 계산해 둡니다</span>
+          </span>
+          <span class="mode-arrow" aria-hidden="true">→</span>
+        </button>
+
+        <button class="mode-card" data-difficulty="hard">
+          <span class="mode-icon" aria-hidden="true">🔥</span>
+          <span class="mode-body">
+            <span class="mode-title">어려움</span>
+            <span class="mode-desc">상대 손패를 추정해 몇 수 앞을 내다봅니다</span>
+          </span>
+          <span class="mode-arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+
+      <p class="hint">AI 대전은 초대 링크 없이 바로 시작되고, 재대결도 한 번에 됩니다.</p>
+    </section>
+
+    <!-- ── 대기실(초대) ────────────────────────────────────────── -->
+    <section id="screen-room" class="screen" data-screen="room">
+      <header class="screen-head">
+        <button class="btn btn-icon" data-leave aria-label="나가기">←</button>
+        <h2>초대 링크를 보내세요</h2>
+      </header>
+
+      <div class="room-code" id="room-code">------</div>
+      <p class="hint center">상대가 링크를 열면 바로 게임이 시작됩니다.</p>
+
+      <div class="invite-row">
+        <input id="invite-url" class="invite-input" readonly aria-label="초대 링크" />
+        <button id="btn-copy" class="btn btn-primary btn-sm">복사</button>
+      </div>
+
+      <div class="waiting">
+        <span class="spinner" aria-hidden="true"></span>
+        <span>상대를 기다리는 중…</span>
+      </div>
+
+      <button class="btn btn-ghost btn-sm" data-leave>나가기</button>
+    </section>
+
+    <!-- ── 게임 ───────────────────────────────────────────────── -->
+    <section id="screen-game" class="screen" data-screen="game">
+      <header class="game-head">
+        <div class="meta-line">
+          <span id="set-label">본 게임</span>
+          <span class="dot-sep">·</span>
+          <span id="round-label">1 / 9 라운드</span>
+        </div>
+        <div class="scoreboard">
+          <div class="score score-me">
+            <span class="score-name">나</span>
+            <span class="score-value" id="score-me">0</span>
+          </div>
+          <div class="score-sep" aria-hidden="true">:</div>
+          <div class="score score-opp">
+            <span class="score-name" id="opp-score-name">상대</span>
+            <span class="score-value" id="score-opp">0</span>
+          </div>
+        </div>
+        <p id="turn-banner" class="turn-banner">연결 중…</p>
+      </header>
+
+      <section class="opponent-panel" aria-label="상대 정보">
+        <div class="panel-head">
+          <span class="panel-title" id="opp-panel-title">상대 남은 타일</span>
+          <span id="opp-submitted" class="chip-note" hidden></span>
+        </div>
+        <div class="opp-counter">
+          <span class="count-black"><i aria-hidden="true"></i>흑 <b id="opp-black">5</b></span>
+          <span class="count-white"><i aria-hidden="true"></i>백 <b id="opp-white">4</b></span>
+          <span id="opp-status" class="conn-dot" title="연결 상태"></span>
+        </div>
+      </section>
+
+      <div id="round-result" class="round-result" hidden>
+        <p id="round-result-title" class="rr-title"></p>
+        <p id="round-result-detail" class="rr-detail"></p>
+        <div class="rr-bar"><span id="rr-progress"></span></div>
+        <button id="btn-next" class="btn btn-ghost btn-sm">다음 라운드</button>
+      </div>
+
+      <section class="my-panel" aria-label="내 타일">
+        <div class="panel-head">
+          <span class="panel-title">내 타일</span>
+          <span id="first-badge" class="badge" hidden>선공</span>
+        </div>
+        <div id="my-tiles" class="tiles" role="group" aria-label="낼 타일 선택"></div>
+        <button id="btn-submit" class="btn btn-primary btn-wide" disabled>제출하기</button>
+        <p id="submit-hint" class="hint center">타일을 고른 뒤 ‘제출하기’를 누르세요.</p>
+      </section>
+
+      <footer class="game-foot">
+        <button id="btn-forfeit" class="btn btn-danger btn-sm">기권</button>
+        <span id="conn-state" class="conn-state">연결됨</span>
+      </footer>
+    </section>
+
+    <!-- ── 게임 종료/복기 ──────────────────────────────────────── -->
+    <section id="screen-over" class="screen" data-screen="over">
+      <header class="over-head">
+        <p id="over-kicker" class="over-kicker">게임 종료</p>
+        <h2 id="over-title">결과</h2>
+        <p id="over-reason" class="hint center"></p>
+      </header>
+
+      <div class="final-score">
+        <div class="score score-me">
+          <span class="score-name">나</span>
+          <span class="score-value" id="final-me">0</span>
+        </div>
+        <div class="score-sep" aria-hidden="true">:</div>
+        <div class="score score-opp">
+          <span class="score-name" id="final-opp-name">상대</span>
+          <span class="score-value" id="final-opp">0</span>
+        </div>
+      </div>
+
+      <div class="replay-wrap">
+        <div class="panel-head">
+          <span class="panel-title" id="replay-title">라운드 복기</span>
+          <span class="legend"><i class="lg-black"></i>흑 <i class="lg-white"></i>백</span>
+        </div>
+        <div class="table-scroll">
+          <table class="replay" id="replay-table">
+            <thead>
+              <tr>
+                <th scope="col">R</th>
+                <th scope="col">선공</th>
+                <th scope="col">나</th>
+                <th scope="col">상대</th>
+                <th scope="col">결과</th>
+                <th scope="col">점수</th>
+              </tr>
+            </thead>
+            <tbody id="replay-body"></tbody>
+          </table>
+        </div>
+        <p id="replay-empty" class="hint center" hidden>아직 공개할 라운드가 없습니다.</p>
+      </div>
+
+      <div class="stack">
+        <button id="btn-rematch" class="btn btn-primary btn-lg">재대결</button>
+        <button id="btn-home" class="btn btn-ghost btn-lg">나가기</button>
+      </div>
+      <p id="rematch-status" class="hint center" hidden></p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/static/game.js"></script>
+</body>
+</html>

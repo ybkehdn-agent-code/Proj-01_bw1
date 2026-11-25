@@ -1,0 +1,20 @@
+# 로컬 환경
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# 로컬 게임 로그(SQLite) — 커밋하지 않는다
+data/
+*.db
+*.db*
+*.sqlite
+*.sqlite3
+
+# CLI 세션(좌석 토큰) — 커밋하지 않는다
+.bw_session.json
+
+# 비밀값/환경 파일 — 커밋하지 않는다
+.env
+.env.*
