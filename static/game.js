@@ -33,7 +33,10 @@
     userLeft: false,
     screen: 'home',
     rrTimer: null,
-    creating: false
+    creating: false,
+    cueKey: null,
+    rrSoundKey: null,
+    overSounded: false
   };
 
   var el = {};
@@ -64,6 +67,148 @@
   function clearToken(roomId) {
     try { sessionStorage.removeItem(tokenKey(roomId)); } catch (e) { /* noop */ }
   }
+
+  // ── 사운드 (Web Audio API) ────────────────────────────────────────
+  // 외부 파일 없이 오실레이터/노이즈만으로 가볍고 조용한 타일·차임 소리를 낸다.
+  // · 기본은 켜짐, 끄면 localStorage(bw_sound_enabled)에 기억한다.
+  // · AudioContext 는 첫 사용자 동작 때 만든다(브라우저 자동재생 정책).
+  // · 지원하지 않거나 차단되면 조용히 아무것도 하지 않는다.
+  var sfx = (function () {
+    var KEY = 'bw_sound_enabled';
+    var enabled = true;
+    try {
+      var saved = localStorage.getItem(KEY);
+      if (saved === '0' || saved === 'false') enabled = false;
+    } catch (e) { /* 사생활 보호 모드 */ }
+
+    var ctx = null;
+    var master = null;
+
+    function ensure() {
+      if (!enabled) return null;
+      try {
+        if (!ctx) {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          ctx = new AC();
+          master = ctx.createGain();
+          master.gain.value = 0.85;
+          master.connect(ctx.destination);
+        }
+        if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+        return ctx;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function nowPlus(delay) {
+      return ctx.currentTime + (delay || 0);
+    }
+
+    // 부드러운 한 음(사인/삼각파). 살짝 올라갔다가 지수적으로 잦아든다.
+    function tone(opt) {
+      var c = ensure(); if (!c) return;
+      try {
+        var t0 = nowPlus(opt.delay);
+        var dur = opt.dur || 0.2;
+        var peak = opt.gain == null ? 0.05 : opt.gain;
+        var osc = c.createOscillator();
+        var g = c.createGain();
+        osc.type = opt.type || 'sine';
+        osc.frequency.setValueAtTime(opt.freq, t0);
+        if (opt.to) osc.frequency.exponentialRampToValueAtTime(opt.to, t0 + dur);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(peak, t0 + (opt.attack || 0.008));
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(g);
+        g.connect(master);
+        osc.start(t0);
+        osc.stop(t0 + dur + 0.03);
+      } catch (e) { /* noop */ }
+    }
+
+    // 짧은 노이즈 타격 — 도자기/나무 타일을 살짝 친 느낌.
+    function hit(opt) {
+      var c = ensure(); if (!c) return;
+      try {
+        var t0 = nowPlus(opt.delay);
+        var dur = opt.dur || 0.05;
+        var frames = Math.max(1, Math.floor(c.sampleRate * dur));
+        var buf = c.createBuffer(1, frames, c.sampleRate);
+        var data = buf.getChannelData(0);
+        for (var i = 0; i < frames; i++) {
+          var k = i / frames;
+          data[i] = (Math.random() * 2 - 1) * Math.pow(1 - k, 3);
+        }
+        var src = c.createBufferSource();
+        src.buffer = buf;
+        var bp = c.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.setValueAtTime(opt.freq || 1600, t0);
+        bp.Q.value = opt.q == null ? 1.2 : opt.q;
+        var g = c.createGain();
+        g.gain.setValueAtTime(opt.gain == null ? 0.05 : opt.gain, t0);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        src.connect(bp);
+        bp.connect(g);
+        g.connect(master);
+        src.start(t0);
+        src.stop(t0 + dur + 0.02);
+      } catch (e) { /* noop */ }
+    }
+
+    return {
+      isEnabled: function () { return enabled; },
+      setEnabled: function (on) {
+        enabled = !!on;
+        try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch (e) { /* noop */ }
+        if (enabled) { ensure(); hit({ freq: 2200, q: 1.4, dur: 0.04, gain: 0.04 }); }
+      },
+      unlock: function () { ensure(); },
+      // 타일 선택: 아주 짧고 부드러운 클릭.
+      tap: function () {
+        hit({ freq: 2400, q: 1.7, dur: 0.042, gain: 0.045 });
+        tone({ freq: 620, to: 520, dur: 0.05, gain: 0.016 });
+      },
+      // 제출: 조금 더 단단한, 타일을 내려놓는 소리.
+      place: function () {
+        hit({ freq: 880, q: 0.9, dur: 0.075, gain: 0.075 });
+        tone({ freq: 210, to: 150, dur: 0.11, gain: 0.042, delay: 0.004 });
+      },
+      // 상대 제출 / 내 차례 알림: 은은한 틱.
+      tick: function () {
+        tone({ freq: 1180, dur: 0.07, gain: 0.03 });
+        tone({ freq: 1770, dur: 0.05, gain: 0.01, delay: 0.012 });
+      },
+      // 라운드 결과: 승리는 두 음 상승 차임, 무승부는 중립음, 패배는 낮게 가라앉는 음.
+      round: function (kind) {
+        if (kind === 'win') {
+          tone({ freq: 784, dur: 0.24, gain: 0.042 });
+          tone({ freq: 1046.5, dur: 0.34, gain: 0.04, delay: 0.13 });
+        } else if (kind === 'lose') {
+          tone({ freq: 330, to: 262, dur: 0.32, gain: 0.045 });
+        } else {
+          tone({ freq: 523.25, dur: 0.26, gain: 0.03 });
+        }
+      },
+      // 게임 종료: 승리는 짧은 아르페지오, 패배·무승부는 부드러운 종지음.
+      over: function (kind) {
+        if (kind === 'win') {
+          [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
+            tone({ freq: f, dur: 0.5, gain: 0.04, delay: i * 0.1 });
+            tone({ freq: f * 2, dur: 0.22, gain: 0.009, type: 'triangle', delay: i * 0.1 });
+          });
+        } else if (kind === 'lose') {
+          tone({ freq: 392, to: 330, dur: 0.55, gain: 0.045 });
+          tone({ freq: 261.63, dur: 0.7, gain: 0.035, delay: 0.16 });
+        } else {
+          tone({ freq: 440, dur: 0.5, gain: 0.035 });
+          tone({ freq: 440, dur: 0.6, gain: 0.022, delay: 0.14 });
+        }
+      }
+    };
+  })();
 
   var toastTimer = null;
   function toast(message) {
@@ -139,6 +284,9 @@
     app.fatal = false;
     app.userLeft = false;
     app.reconnectAttempt = 0;
+    app.cueKey = null;
+    app.rrSoundKey = null;
+    app.overSounded = false;
     if (token) saveToken(roomId, token);
     renderRoomShell();
     if (app.mode === 'ai') {
@@ -462,7 +610,24 @@
 
     renderTiles(v, me, myTurn);
     renderTurnBanner(v, me, myTurn);
+    cueTurnChange(v, me, myTurn);
     renderRoundResult(v, me, opp);
+  }
+
+  // 상대가 타일을 냈거나 내 차례가 막 시작됐을 때만 짧은 틱을 낸다.
+  function cueTurnChange(v, me, myTurn) {
+    var oppSubmitted = v.opponent.submitted_color || null;
+    var key = v.set_index + ':' + v.round + ':' + (myTurn ? 'me' : 'op') + ':' + (oppSubmitted || '-');
+    if (app.cueKey === key) return;
+    var prev = app.cueKey;
+    app.cueKey = key;
+    if (!prev) return;                       // 첫 렌더는 조용히
+    if (v.phase === 'ROUND_RESULT' || v.phase === 'GAME_OVER') return;
+    var parts = prev.split(':');
+    var prevMine = parts[2] === 'me';
+    var prevOpp = parts[3];
+    if (oppSubmitted && prevOpp === '-') sfx.tick();   // 상대 제출
+    else if (myTurn && !prevMine) sfx.tick();          // 내 차례 시작
   }
 
   function renderTiles(v, me, myTurn) {
@@ -591,6 +756,12 @@
     var iVoted = (app.meta.nextVotes || []).indexOf(app.player) !== -1;
     el.btnNext.disabled = iVoted;
     el.btnNext.textContent = iVoted ? '다음 라운드 준비됨' : '다음 라운드';
+
+    var rrKey = v.set_index + ':' + v.round;
+    if (app.rrSoundKey !== rrKey) {
+      app.rrSoundKey = rrKey;
+      sfx.round(rr.winner === me ? 'win' : (rr.winner === 'draw' ? 'draw' : 'lose'));
+    }
   }
 
   // ── 게임 종료/복기 ─────────────────────────────────────────────────
@@ -628,6 +799,11 @@
     }
     el.overKicker.textContent = reason === 'forfeit' || reason === 'disconnect' ? '게임 중단' : '게임 종료';
     el.overReason.textContent = reasonText(reason, iWon);
+
+    if (!app.overSounded) {
+      app.overSounded = true;
+      sfx.over(draw ? 'draw' : (iWon ? 'win' : 'lose'));
+    }
 
     var scores = (v && v.scores) || {};
     setOpponentLabels();
@@ -786,6 +962,7 @@
   function onTilePick(tile) {
     if (app.submitting) return;
     app.selectedTile = app.selectedTile === tile ? null : tile;
+    sfx.tap();
     renderGame();
   }
 
@@ -806,6 +983,7 @@
     el.btnSubmit.disabled = true;
     el.btnSubmit.textContent = '제출 중…';
     app.selectedTile = null;
+    sfx.place();
   }
 
   function requestNext() {
@@ -842,6 +1020,8 @@
     app.submitting = false;
     app.mode = 'human';
     app.difficulty = null;
+    app.cueKey = null;
+    app.rrSoundKey = null;
     show('home');
   }
 
@@ -871,9 +1051,27 @@
     toast(ok ? '초대 링크를 복사했습니다.' : '링크를 길게 눌러 복사해 주세요.');
   }
 
+  // ── 소리 토글 ──────────────────────────────────────────────────────
+  function paintSound() {
+    if (!el.btnSound) return;
+    var on = sfx.isEnabled();
+    el.btnSound.classList.toggle('is-muted', !on);
+    el.btnSound.setAttribute('aria-pressed', on ? 'true' : 'false');
+    var label = on ? '소리 끄기' : '소리 켜기';
+    el.btnSound.setAttribute('aria-label', label);
+    el.btnSound.title = label;
+  }
+
+  function toggleSound() {
+    sfx.setEnabled(!sfx.isEnabled());
+    paintSound();
+    toast(sfx.isEnabled() ? '소리를 켰습니다.' : '소리를 껐습니다.');
+  }
+
   // ── 초기화 ─────────────────────────────────────────────────────────
   function cacheElements() {
     el.toast = $('#toast');
+    el.btnSound = $('#btn-sound');
     el.btnCreate = $('#btn-create');
     el.btnJoin = $('#btn-join');
     el.homeNotice = $('#home-notice');
@@ -918,6 +1116,13 @@
   }
 
   function bindEvents() {
+    if (el.btnSound) el.btnSound.addEventListener('click', toggleSound);
+    // 브라우저 자동재생 정책: 첫 사용자 동작에서 AudioContext 를 깨운다.
+    document.addEventListener('pointerdown', function once() {
+      sfx.unlock();
+      document.removeEventListener('pointerdown', once);
+    });
+
     el.btnCreate.addEventListener('click', function () { show('mode'); });
 
     document.querySelectorAll('[data-nav]').forEach(function (btn) {
@@ -966,6 +1171,7 @@
 
   function boot() {
     cacheElements();
+    paintSound();
     bindEvents();
 
     var params = new URLSearchParams(location.search);

@@ -20,9 +20,9 @@
 | `storage.py` | `LogRepository` 인터페이스 + `SQLiteLogRepository`(WAL, 기본 `data/games.db`) |
 | `server.py` | FastAPI + WebSocket 딜러: 방 생성·입장·재접속·heartbeat·`ROUND_RESULT` 전환·기권·재대결·TTL GC·**AI 좌석/턴 진행**·static 서빙 |
 | `cli.py` | 터미널/피클용 CLI 클라이언트 — 초대 링크 파싱·세션 토큰 재접속·`join`/`submit`/`wait`/`status`/`forfeit`, 명령마다 JSON 하나 출력 |
-| `static/index.html` | 첫 화면 → 대전 모드 → (AI) 난이도 선택 → 대기실(초대 링크) → 게임 → 종료/복기 |
-| `static/style.css` | 흑/백 모노크롬 반응형 테마(모바일 터치 타일 58px 이상) |
-| `static/game.js` | WebSocket 송수신·자동 재연결·ping·타일 선택→제출 2단계 UI·복기 표·AI 생각 중 표시 |
+| `static/index.html` | 첫 화면 → 대전 모드 → (AI) 난이도 선택 → 대기실(초대 링크) → 게임 → 종료/복기 · 다크 전용 `color-scheme` 메타 · 소리 토글 버튼 |
+| `static/style.css` | 흑/백 모노크롬 반응형 테마(모바일 터치 타일 58px 이상) · Android 자동 다크/강제 반전 방지(`color-scheme`, `forced-color-adjust`) · 소리 토글 스타일 |
+| `static/game.js` | WebSocket 송수신·자동 재연결·ping·타일 선택→제출 2단계 UI·복기 표·AI 생각 중 표시 · Web Audio 효과음(타일 탭·제출·차임, 음소거 기억) |
 | `tests/test_engine.py` | 1단계 규칙·정보 은닉·Self-Play 불변식 (47개) |
 | `tests/test_storage.py` | WAL·스키마·저장/조회·멱등 저장 (12개) |
 | `tests/test_ai.py` | 난이도별 합법성·정보 은닉·신념 추정·시뮬레이션 승률 (21개) |

@@ -2,6 +2,10 @@
    타일은 최소 56px 터치 영역을 확보하고, 선택 → 제출 2단계로 오터치를 막는다. */
 
 :root {
+  /* 다크 전용 테마임을 브라우저에 알린다.
+     이 선언이 없으면 Android Chrome/Samsung Internet 자동 다크 모드가
+     밝은 면(흰 타일 #fafafa)을 어두운 회색으로 강제 반전시킨다. */
+  color-scheme: dark;
   --bg: #0b0b0d;
   --bg-soft: #131317;
   --panel: #17171c;
@@ -31,6 +35,7 @@ html, body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  color-scheme: dark;
   background: var(--bg);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
@@ -82,6 +87,47 @@ body {
 }
 .screen-head h2 { font-size: 1.05rem; font-weight: 700; margin: 0; }
 
+/* ── 소리 토글 ─────────────────────────────────────────────── */
+/* 화면 어디서든 누를 수 있게 오른쪽 상단에 고정한다. */
+.sound-toggle {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  right: max(12px, calc((100vw - 520px) / 2 + 14px));
+  z-index: 40;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: rgba(23, 23, 28, 0.72);
+  color: var(--ink-dim);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  touch-action: manipulation;
+  forced-color-adjust: none;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.08s;
+}
+.sound-toggle:active { transform: scale(0.94); }
+.sound-toggle:hover { color: var(--ink); border-color: #3f3f46; }
+.sound-toggle:focus-visible { outline: 2px solid #fafafa; outline-offset: 2px; }
+.sound-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sound-toggle .ico-sound-off { display: none; }
+.sound-toggle.is-muted { color: var(--ink-faint); }
+.sound-toggle.is-muted .ico-sound-on { display: none; }
+.sound-toggle.is-muted .ico-sound-off { display: block; }
+
 /* ── 첫 화면 ───────────────────────────────────────────────── */
 .brand {
   margin-top: 8vh;
@@ -108,8 +154,28 @@ body {
   font-weight: 800;
   font-size: 0.9rem;
 }
-.chip-black { background: var(--black-tile); border: 1.5px solid #3f3f46; color: #fafafa; }
-.chip-white { background: var(--white-tile); color: #111; }
+.chip-black { background: var(--black-tile); border: 1.5px solid #3f3f46; color: #fafafa; -webkit-text-fill-color: #fafafa; }
+.chip-white { background: var(--white-tile); color: #111; -webkit-text-fill-color: #111; }
+
+/* 흑/백 대비를 브라우저가 임의로 바꾸지 못하게 고정한다.
+   (Android 자동/강제 다크 모드, Windows 고대비 forced-colors 모드 대응) */
+.chip,
+.chip-note,
+.tile,
+.tile-num,
+.tile-tag,
+.count-black i,
+.count-white i,
+.lg-black,
+.lg-white,
+.mini-tile,
+.conn-dot,
+.score-value,
+.rr-bar span,
+.btn-primary,
+.toast {
+  forced-color-adjust: none;
+}
 
 .stack { display: flex; flex-direction: column; gap: 10px; }
 
@@ -147,8 +213,9 @@ body {
 .btn:focus-visible { outline: 2px solid #fafafa; outline-offset: 2px; }
 
 .btn-primary {
-  background: var(--accent);
+  background-color: #f4f4f5;
   color: #0b0b0d;
+  -webkit-text-fill-color: #0b0b0d;
   border-color: var(--accent);
 }
 .btn-ghost {
@@ -351,8 +418,8 @@ body {
   border: 1px solid #3f3f46;
   color: var(--ink-dim);
 }
-.chip-note.is-black { background: #000; color: #fafafa; border-color: #52525b; }
-.chip-note.is-white { background: #fafafa; color: #111; border-color: #fafafa; }
+.chip-note.is-black { background-color: #000; color: #fafafa; -webkit-text-fill-color: #fafafa; border-color: #52525b; }
+.chip-note.is-white { background-color: #fafafa; color: #111; -webkit-text-fill-color: #111; border-color: #fafafa; }
 
 .opp-counter { display: flex; align-items: center; gap: 14px; font-size: 0.86rem; color: var(--ink-dim); }
 .opp-counter b { color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -364,8 +431,8 @@ body {
   margin-right: 6px;
   vertical-align: -1px;
 }
-.count-black i, .lg-black { background: #000; border: 1px solid #52525b; }
-.count-white i, .lg-white { background: #fafafa; }
+.count-black i, .lg-black { background-color: #000; border: 1px solid #a1a1aa; }
+.count-white i, .lg-white { background-color: #fafafa; border: 1px solid #d4d4d8; }
 
 .conn-dot {
   margin-left: auto;
@@ -406,8 +473,8 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
-.tile.is-black { background: var(--black-tile); color: #fafafa; border-color: #3f3f46; }
-.tile.is-white { background: var(--white-tile); color: #0b0b0d; border-color: #fafafa; }
+.tile.is-black { background-color: #101013; color: #fafafa; -webkit-text-fill-color: #fafafa; border-color: #3f3f46; }
+.tile.is-white { background-color: #fafafa; color: #0b0b0d; -webkit-text-fill-color: #0b0b0d; border-color: #fafafa; }
 .tile.is-selected {
   transform: translateY(-4px);
   border-color: #fafafa;
@@ -541,8 +608,8 @@ body {
   font-size: 0.7rem;
   font-weight: 800;
 }
-.replay .mini-tile.is-black { background: #000; color: #fafafa; border: 1px solid #52525b; }
-.replay .mini-tile.is-white { background: #fafafa; color: #0b0b0d; }
+.replay .mini-tile.is-black { background-color: #000; color: #fafafa; -webkit-text-fill-color: #fafafa; border: 1px solid #52525b; }
+.replay .mini-tile.is-white { background-color: #fafafa; color: #0b0b0d; -webkit-text-fill-color: #0b0b0d; border: 1px solid #d4d4d8; }
 .replay .win { color: var(--good); font-weight: 700; }
 .replay .lose { color: var(--bad); }
 .replay .draw { color: var(--ink-faint); }

@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="supported-color-schemes" content="dark" />
   <meta name="theme-color" content="#0b0b0d" />
   <meta name="description" content="흑과 백 — 색은 보이고 숫자는 숨는 1:1 심리 대전" />
   <title>흑과 백 — Black &amp; White</title>
@@ -11,6 +13,19 @@
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
+
+  <button id="btn-sound" class="sound-toggle" type="button" aria-pressed="true"
+          aria-label="소리 끄기" title="소리 끄기">
+    <svg class="ico-sound-on" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 9.5h3.2L12 5.6v12.8L7.2 14.5H4z" />
+      <path d="M15.6 9.2a3.9 3.9 0 0 1 0 5.6" />
+      <path d="M18.1 6.8a7.3 7.3 0 0 1 0 10.4" />
+    </svg>
+    <svg class="ico-sound-off" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 9.5h3.2L12 5.6v12.8L7.2 14.5H4z" />
+      <path d="M16 9.6l4.6 4.6M20.6 9.6L16 14.2" />
+    </svg>
+  </button>
 
   <main id="app">
     <!-- ── 첫 화면 ─────────────────────────────────────────────── -->
